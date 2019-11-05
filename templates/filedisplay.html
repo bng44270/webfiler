@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html>
+<head>
+<title>Contents of {{fileinfo["shortname"]}}</title>
+</head>
+<body{% if fileinfo["tail"] %} onLoad="setTimeout(function() { window.reload(); }, 10000);"{% endif %}>
+<h2>Contents of {{fileinfo["shortname"]}}</h2>
+<a href="#bottom">Go to bottom</a>&nbsp;&nbsp;&nbsp;
+{% if fileinfo["tail"] %}
+<a href="?tail=false">Stop Tail</a>
+{% else %}
+<a href="?tail=true">Start Tail</a>
+{% endif %}<br/>
+<pre>
+{{fileinfo["content"]}}
+</pre>
+<a name="bottom"/>
+<br/><span style="font-style:italic;">Powered by webfiler.py</span><br/>
+</body>
+</html>

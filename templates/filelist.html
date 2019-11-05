@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html>
+<head>
+<title>Contents of {{dirlist["path"]}}</title>
+</head>
+<body>
+<h2>Contents of {{dirlist["path"]}}</h2>
+<a href="{{dirlist["path"]}}..">Parent Directory</a><br/><br/>
+<table style="border-width:0px;">
+{% for thisfile in dirlist["files"] %}
+<tr>
+  <td>[{{thisfile["type"]}}]</td>
+  <td style="width:10px;"></td>
+  <td><a href="{{thisfile["path"]}}">{{thisfile["shortname"]}}</a>(<a href="{{thisfile["path"]}}?tail=true#bottom">tail</a>)</td>
+  <td style="width:20px;"></td>
+  <td>{{thisfile["size"]}} bytes</td>
+  <td style="width:10px;"></td>
+  <td>{{thisfile["modify"]}}</td>
+</tr>
+{% endfor %}
+</table>
+<br/><span style="font-style:italic;">Powered by webfiler.py</span><br/>
+</body>
+</html>

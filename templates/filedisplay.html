@@ -3,18 +3,31 @@
 <html>
 <head>
 <title>Contents of {{fileinfo["shortname"]}}</title>
-</head>
-<body{% if fileinfo["tail"] %} onLoad="setTimeout(function() { window.reload(); }, 10000);"{% endif %}>
-<h2>Contents of {{fileinfo["shortname"]}}</h2>
-<a href="#bottom">Go to bottom</a>&nbsp;&nbsp;&nbsp;
 {% if fileinfo["tail"] %}
-<a href="?tail=false">Stop Tail</a>
-{% else %}
+<script type="text/javascript">
+    function showTail() {
+        document.getElementById('gotobottom').click();
+        setTimeout(function() {
+            window.reload();
+        }, 10000);
+    }
+</script>
+{% endif %}
+</head>
+<body{% if fileinfo["tail"] %} onLoad="showTail();"{% endif %}>
+<a name="top" />
+<h2>Contents of {{fileinfo["shortname"]}}</h2>
+<a id="gotobottom" href="#bottom">Go to bottom</a>&nbsp;&nbsp;&nbsp;
+{% if not fileinfo["tail"] %}
 <a href="?tail=true">Start Tail</a>
 {% endif %}<br/>
 <pre>
 {{fileinfo["content"]}}
 </pre>
+<a href="#top">Go to top</a>&nbsp;&nbsp;&nbsp;
+{% if fileinfo["tail"] %}
+<a href="?tail=false">Stop Tail</a>
+{% endif %}
 <a name="bottom"/>
 <br/><span style="font-style:italic;">Powered by webfiler.py</span><br/>
 </body>

@@ -1,25 +1,149 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
 <html>
+
 <head>
-<title>Contents of {{dirlist["path"]}}</title>
+  <title>Contents of {{dirlist["path"]}}</title>
+  <script type="text/javascript" src="/webrequest.js"></script>
+  <script type="text/javascript">
+    function uploadNewFile() {
+      var upload = document.createElement('input');
+      upload.type = 'file';
+      upload.style.display = 'none';
+      upload.onchange = function (e) {
+        if (e.target.files[0]) {
+          var thisFormData = new FormData();
+          thisFormData.append('uploadfile', e.target.files[0]);
+          thisFormData.append('username', getUsername());
+          thisFormData.append("csrf_token", "{{ csrf_token() }}");
+          thisFormData.append('folder', location.pathname);
+
+          var req = new WebRequest('POST', '/$/upload', {
+            data: thisFormData
+          });
+
+          req.response.then(resp => {
+            var ob = JSON.parse(resp.body);
+            if (ob.success) {
+              document.getElementById('statusbar').innerHTML = 'Upload successful.  Reloading in 2s.';
+              setTimeout(function () {
+                window.location.reload();
+              }, 2000);
+            }
+            else {
+              document.getElementById('statusbar').innerHTML = '<span style="color:#ff0000">' + ob.msg + '</span>';
+            }
+          });
+
+        }
+      };
+
+      document.body.appendChild(upload);
+
+      upload.click();
+    }
+
+    function getUsername() {
+      return (JSON.parse(localStorage['webfiler'])).username;
+    }
+
+    function setUsername() {
+      var username = document.getElementById('username').value;
+
+      if (username.length == 0) {
+        document.getElementById('configstatus').innerHTML = '<span style="color:#ff0000;">Please specify a username</span>';
+      }
+      else {
+        var thisFormData = new FormData();
+        thisFormData.append('username', username);
+        thisFormData.append("csrf_token", "{{ csrf_token() }}");
+
+        var req = new WebRequest('POST', '/$/uservalidate', {
+          data: thisFormData
+        });
+
+        req.response.then(resp => {
+          var ob = JSON.parse(resp.body);
+
+          if (ob.success) {
+            document.getElementById('configstatus').innerText = '';
+
+            var ob = {
+              username: username
+            };
+
+            localStorage['webfiler'] = JSON.stringify(ob);
+
+            showList();
+          }
+          else {
+            document.getElementById('configstatus').innerHTML = '<span style="color:#ff0000;">' + ob.msg + '</span>';
+          }
+        });
+      }
+    }
+
+    function configExists() {
+      return Object.keys(localStorage).indexOf('webfiler') > -1;
+    }
+
+    function configureViewer() {
+      if (!configExists()) {
+        showConfig();
+      }
+      else {
+        showList();
+      }
+    }
+
+    function showList() {
+      document.getElementById('configview').style.display = 'none';
+      document.getElementById('listview').style.display = 'block';
+    }
+
+    function showConfig() {
+      document.getElementById('listview').style.display = 'none';
+      document.getElementById('configview').style.display = 'block';
+
+      if (configExists()) {
+        document.getElementById('username').value = getUsername();
+      }
+    }
+  </script>
 </head>
-<body>
-<h2>Contents of {{dirlist["path"]}}</h2>
-<a href="{{dirlist["path"]}}..">Parent Directory</a><br/><br/>
-<table style="border-width:0px;">
-{% for thisfile in dirlist["files"] %}
-<tr>
-  <td>[{{thisfile["type"]}}]</td>
-  <td style="width:10px;"></td>
-  <td><a href="{{thisfile["path"]}}">{{thisfile["shortname"]}}</a>(<a href="{{thisfile["path"]}}?tail=true#bottom">tail</a>)</td>
-  <td style="width:20px;"></td>
-  <td>{{thisfile["size"]}} bytes</td>
-  <td style="width:10px;"></td>
-  <td>{{thisfile["modify"]}}</td>
-</tr>
-{% endfor %}
-</table>
-<br/><span style="font-style:italic;">Powered by webfiler.py</span><br/>
+
+<body onLoad="configureViewer();">
+  <div id="configview">
+    <input type="text" id="username" /><br />
+    <button onClick="setUsername();">Save</button><br />
+    <span id="configstatus"></span>
+  </div>
+  <div id="listview">
+    <h2>Contents of {{dirlist["path"]}}</h2>
+    <button onClick="location.href='{{dirlist[" path"]}}..';">Parent Directory</button>
+    <button onClick="uploadNewFile();">Upload File</button>
+    <button onClick="showConfig();">Configure</button>
+    <span id="statusbar"></span>
+    <br /><br />
+    <table style="border-width:0px;">
+      {% for thisfile in dirlist["files"] %}
+      <tr>
+        <td>[{{thisfile["type"]}}]</td>
+        <td style="width:10px;"></td>
+        <td><a href="{{thisfile[" path"]}}">{{thisfile["shortname"]}}</a>(<a href="{{thisfile["
+            path"]}}?tail=true#bottom">tail</a>)</td>
+        <td style="width:20px;"></td>
+        <td>{{thisfile["owner"]}}</td>
+        <td style="width:20px;"></td>
+        <td>{{thisfile["size"]}} bytes</td>
+        <td style="width:10px;"></td>
+        <td>{{thisfile["modify"]}}</td>
+      </tr>
+      {% endfor %}
+    </table>
+
+  </div>
+  <br /><span style="font-style:italic;">Powered by webfiler.py</span><br />
 </body>
+
 </html>

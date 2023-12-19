@@ -120,7 +120,7 @@
   </div>
   <div id="listview">
     <h2>Contents of {{dirlist["path"]}}</h2>
-    <button onClick="location.href='{{dirlist[" path"]}}..';">Parent Directory</button>
+    {% if dirlist["isroot"] %}<button onClick="location.href='{{dirlist[" path"]}}..';">Parent Folder</button>{% endif %}
     <button onClick="uploadNewFile();">Upload File</button>
     <button onClick="showConfig();">Configure</button>
     <span id="statusbar"></span>
@@ -130,8 +130,7 @@
       <tr>
         <td>[{{thisfile["type"]}}]</td>
         <td style="width:10px;"></td>
-        <td><a href="{{thisfile[" path"]}}">{{thisfile["shortname"]}}</a>(<a href="{{thisfile["
-            path"]}}?tail=true#bottom">tail</a>)</td>
+        <td><a href="{{thisfile["path"]}}">{{thisfile["shortname"]}}</a><!-- (<a href="{{thisfile["path"]}}?tail=true#bottom">tail</a>) --></td>
         <td style="width:20px;"></td>
         <td>{{thisfile["owner"]}}</td>
         <td style="width:20px;"></td>

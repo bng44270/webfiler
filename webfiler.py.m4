@@ -4,6 +4,8 @@ from werkzeug.utils import secure_filename
 import os
 import re
 import time
+from base64 import b64decode as base64_decode
+from json import loads as str2dict
 
 webroot = "LOCALPATH"
 
@@ -45,17 +47,13 @@ def GetLogs(path):
       with open(thispath,"r") as f:
         filecontent = f.readlines()
       
-      if request.args.get("tail") == "true":
-        fileinfo["tail"] = True
-        fileinfo["content"] = "\n".join(filecontent[-50:])
-      else:
-        fileinfo["content"] = "\n".join(filecontent)
-        fileinfo["tail"] = False
+      fileinfo["content"] = ("\n".join(filecontent)).replace("\n\n","\n")
       
       return render_template('filedisplay.html',fileinfo = fileinfo)
     else:
       dirlist = {}
       dirlist["path"] = re.sub("\/\/","/","/" + path + "/")
+      dirlist["isroot"] = thispath != (webroot + "/")
       dirlist["files"] = []
       for thisfile in os.listdir(thispath):
         owner = uid_to_username(os.stat(thispath + "/" + thisfile).st_uid)
@@ -86,6 +84,23 @@ def GetLogs(path):
           return "{\"success\":false,\"msg\":\"Invalid Username\"}"
       except Exception as e:
         return "{\"success\":false,\"msg\":\"" + str(e) + "ssss\"}"
+    elif re.match(r"^\$\/savefile",path):
+      try:
+        filename = request.form["filespec"]
+        content = str2dict(request.form["content"])
+        username = request.form["username"]
+        fullfilepath = os.path.join(webroot + filename)
+
+        owner = uid_to_username(os.stat(fullfilepath).st_uid)
+        if owner == username:
+          os.remove(fullfilepath)
+          with open(fullfilepath,'w') as f:
+            f.write((''.join([chr(a) for a in content])).replace('\n\n','\n'))
+          return "{\"success\":true}"
+        else:
+          return "{\"success\":false,\"msg\":\"Invalid permissions to modify file\"}"
+      except Exception as e:
+        return "{\"success\":false,\"msg\":\"" + str(e) + "\"}"
     elif re.match(r"^\$\/upload",path):
       try:
         file = request.files["uploadfile"]
@@ -103,8 +118,10 @@ def GetLogs(path):
           else:
             return "{\"success\":false,\"msg\":\"Invalid permissions to modify file\"}"
         else:
+          folderpath = os.path.join(webroot + str(folder))
+          gid = os.stat(folderpath).st_gid
           file.save(fullfilepath)
-          os.chown(fullfilepath,username_to_uid(username))
+          os.chown(fullfilepath,int(username_to_uid(username)),gid)
           return "{\"success\":true}"
       except Exception as e:
         return "{\"success\":false,\"msg\":\"" + str(e) + "\"}"

@@ -1,34 +1,88 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
 <html>
+
 <head>
-<title>Contents of {{fileinfo["shortname"]}}</title>
-{% if fileinfo["tail"] %}
-<script type="text/javascript">
-    function showTail() {
-        document.getElementById('gotobottom').click();
-        setTimeout(function() {
-            window.reload();
-        }, 10000);
-    }
-</script>
-{% endif %}
+    <title>Contents of {{fileinfo["shortname"]}}</title>
+    <link rel="stylesheet" type="text/css" href="/prettify.css" />
+    <script type="text/javascript" src="/prettify.js"></script>
+    <script type="text/javascript" src="/webrequest.js"></script>
 </head>
-<body{% if fileinfo["tail"] %} onLoad="showTail();"{% endif %}>
-<a name="top" />
-<h2>Contents of {{fileinfo["shortname"]}}</h2>
-<a id="gotobottom" href="#bottom">Go to bottom</a>&nbsp;&nbsp;&nbsp;
-{% if not fileinfo["tail"] %}
-<a href="?tail=true">Start Tail</a>
-{% endif %}<br/>
-<pre>
-{{fileinfo["content"]}}
-</pre>
-<a href="#top">Go to top</a>&nbsp;&nbsp;&nbsp;
-{% if fileinfo["tail"] %}
-<a href="?tail=false">Stop Tail</a>
-{% endif %}
-<a name="bottom"/>
-<br/><span style="font-style:italic;">Powered by webfiler.py</span><br/>
+
+<body>
+    <h2>Contents of {{fileinfo["shortname"]}}</h2><br/>
+    <button id="editfile">Edit</button>
+    <button id="savefile">Save</button>
+    <button id="cancelop">Cancel</button>
+    <button onclick="location.href = location.pathname.replace(/^(.*\/)[^\/]+/,'$1');">Parent Folder</button>
+    <span id="statusbar"></span><br>
+    <div id="codeview" style="overflow-x: auto; overflow-y: auto;">
+        <pre style="line-height:100%;" id="filetext" class="prettyprint">{{fileinfo["content"]}}</pre>
+    </div>
+    <textarea id="edittext" style="width:100%;">{{fileinfo["content"]}}</textarea>
+    <br /><span style="font-style:italic;">Powered by webfiler.py</span><br />
+    <script type="text/javascript">
+        function getUsername() {
+          return (JSON.parse(localStorage['webfiler'])).username;
+        }
+
+        document.body.onload = function () {
+            var height = parseInt(window.innerHeight * 0.75);
+            document.getElementById('codeview').style.height = height.toString() + "px";
+            document.getElementById('edittext').style.height = height.toString() + "px";
+            document.getElementById('edittext').style.display = 'none';
+            document.getElementById('cancelop').style.display = 'none';
+
+            PR.prettyPrint();
+            document.getElementById('savefile').style.display = 'none';
+        };
+
+        document.getElementById('editfile').onclick = function() {
+            document.getElementById('savefile').style.display = 'inline';
+            document.getElementById('cancelop').style.display = 'inline';
+            document.getElementById('editfile').style.display = 'none';
+            document.getElementById('codeview').style.display = 'none';
+            document.getElementById('edittext').style.display = 'block';
+        };
+
+        document.getElementById('cancelop').onclick = function() {
+            document.getElementById('savefile').style.display = 'none';
+            document.getElementById('cancelop').style.display = 'none';
+            document.getElementById('editfile').style.display = 'inline';
+            document.getElementById('codeview').style.display = 'block';
+            document.getElementById('edittext').style.display = 'none';
+        };
+
+        document.getElementById('savefile').onclick = function() {
+            var content = document.getElementById('edittext').value.split('').map(c => c.charCodeAt(0));
+
+            var thisFormData = new FormData();
+            thisFormData.append("csrf_token", "{{ csrf_token() }}");
+            thisFormData.append('filespec',location.pathname);
+            thisFormData.append('username', getUsername());
+            thisFormData.append('content',JSON.stringify(content));
+
+            var req = new WebRequest('POST','/$/savefile',{
+                data : thisFormData
+            });
+
+            req.response.then(resp => {
+                var ob = JSON.parse(resp.body);
+
+                if (ob.success) {
+                    document.getElementById('statusbar').innerHTML = 'File saved.  Reloading in 2s';
+                    document.getElementById('savefile').style.display = 'none';
+                    setTimeout(function() {
+                        window.location.reload();
+                    },2000);
+                }
+                else {
+                    document.getElementById('statusbar').innerHTML = '<span style="color:#ff0000;">' + ob.msg + '</span>';
+                }
+            });
+        };
+    </script>
+
 </body>
+
 </html>

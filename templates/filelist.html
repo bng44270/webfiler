@@ -96,8 +96,86 @@
       }
     }
 
+    function createNewFile() {
+      var newFileName = document.getElementById('newfilename').value;
+      
+      if (newFileName.length > 0) {
+        var thisFormData = new FormData();
+        thisFormData.append('filename',newFileName);
+        thisFormData.append('folder',location.pathname);
+        thisFormData.append('username',getUsername());
+        thisFormData.append("csrf_token", "{{ csrf_token() }}");
+
+        var req = new WebRequest('POST','/$/createfile',{
+          data : thisFormData
+        });
+
+        req.response.then(resp => {
+          var ob = JSON.parse(resp.body);
+
+          if (ob.success) {
+            document.getElementById('newfilestatus').innerHTML = "File created.  Refreshing in 2s";
+            setTimeout(function() {
+              window.location.reload();
+            },2000);
+          }
+          else {
+            document.getElementById('newfilestatus').innerHTML = '<span style="color:#ff0000;">' + ob.msg + '</span>';
+          }
+        });
+      }
+      else {
+        document.getElementById('newfilestatus').innerHTML = "Please specify file name";
+      }
+    }
+
+    function createNewFolder() {
+      var newFolderName = document.getElementById('newfoldername').value;
+      
+      if (newFolderName.length > 0) {
+        var thisFormData = new FormData();
+        thisFormData.append('foldername',newFolderName);
+        thisFormData.append('folder',location.pathname);
+        thisFormData.append('username',getUsername());
+        thisFormData.append("csrf_token", "{{ csrf_token() }}");
+
+        var req = new WebRequest('POST','/$/createfolder',{
+          data : thisFormData
+        });
+
+        req.response.then(resp => {
+          var ob = JSON.parse(resp.body);
+
+          if (ob.success) {
+            document.getElementById('newfolderstatus').innerHTML = "Folder created.  Refreshing in 2s";
+            setTimeout(function() {
+              window.location.reload();
+            },2000);
+          }
+          else {
+            document.getElementById('newfolderstatus').innerHTML = '<span style="color:#ff0000;">' + ob.msg + '</span>';
+          }
+        });
+      }
+      else {
+        document.getElementById('newfolderstatus').innerHTML = "Please specify folder name";
+      }
+    }
+
+    function showNewFile() {
+      document.getElementById('listview').style.display = 'none';
+      document.getElementById('newfileview').style.display = 'block';
+    }
+
+    function showNewFolder() {
+      document.getElementById('listview').style.display = 'none';
+      document.getElementById('newfolderview').style.display = 'block';
+    }
+
     function showList() {
       document.getElementById('configview').style.display = 'none';
+      document.getElementById('newfolderview').style.display = 'none';
+      document.getElementById('newfileview').style.display = 'none';
       document.getElementById('listview').style.display = 'block';
     }
 
@@ -114,14 +192,29 @@
 
 <body onLoad="configureViewer();">
   <div id="configview">
-    <input type="text" id="username" /><br />
-    <button onClick="setUsername();">Save</button><br />
+    <label for="username">Username</label><input type="text" id="username" /><br />
+    <button onClick="setUsername();">Save</button>
+    <button onClick="showList();">Cancel</button>
     <span id="configstatus"></span>
+  </div>
+  <div id="newfolderview">
+    <label for="newfoldername">Folder Name</label><input type="text" id="newfoldername" />
+    <button onclick="createNewFolder();">Create</button>
+    <button onclick="showList();">Cancel</button>
+    <span id="newfolderstatus"></span>
+  </div>
+  <div id="newfileview">
+    <label for="newfilename">File Name</label><input type="text" id="newfilename" />
+    <button onclick="createNewFile();">Create</button>
+    <button onclick="showList();">Cancel</button>
+    <span id="newfilestatus"></span>
   </div>
   <div id="listview">
     <h2>Contents of {{dirlist["path"]}}</h2>
     {% if dirlist["isroot"] %}<button onClick="location.href='{{dirlist[" path"]}}..';">Parent Folder</button>{% endif %}
     <button onClick="uploadNewFile();">Upload File</button>
+    <button onClick="showNewFile();">New File</button>
+    <button onClick="showNewFolder();">New Folder</button>
     <button onClick="showConfig();">Configure</button>
     <span id="statusbar"></span>
     <br /><br />

@@ -5,12 +5,12 @@ import os
 import re
 import time
 from base64 import b64decode as base64_decode
-from json import loads as str2dict
+from json import loads as json_parse
+from urllib.parse import unquote as url_decode
 
 webroot = "LOCALPATH"
 
 webassets = os.listdir('assets')
-
 
 csrf = CSRFProtect()
 
@@ -33,6 +33,14 @@ def uid_to_username(uid):
       return username
     except:
       return ""
+
+def parsebool(v):
+  if re.match(r"true",v,flags=re.I):
+    return True
+  elif re.match(r"false",v,flags=re.I):
+    return False
+  else:
+    return None
 
 @app.route("/", defaults ={'path':''}, methods=["GET","POST"])
 @app.route("/<path:path>", methods=["GET","POST"])
@@ -87,7 +95,7 @@ def GetLogs(path):
     elif re.match(r"^\$\/savefile",path):
       try:
         filename = request.form["filespec"]
-        content = str2dict(request.form["content"])
+        content = json_parse(request.form["content"])
         username = request.form["username"]
         fullfilepath = os.path.join(webroot + filename)
 
@@ -99,6 +107,43 @@ def GetLogs(path):
           return "{\"success\":true}"
         else:
           return "{\"success\":false,\"msg\":\"Invalid permissions to modify file\"}"
+      except Exception as e:
+        return "{\"success\":false,\"msg\":\"" + str(e) + "\"}"
+    elif re.match(r"\$\/createfile",path):
+      try:
+        filename = request.form["filename"]
+        folder = request.form["folder"]
+        username = request.form["username"]
+        fullfilepath = os.path.join(webroot + str(folder),filename)
+
+        if os.path.exists(fullfilepath):
+          return "{\"success\":false,\"msg\":\"File already exists\"}"
+        else:
+          with open(fullfilepath,"w") as f:
+            f.write("")
+          
+          folderpath = os.path.join(webroot + str(folder))
+          gid = os.stat(folderpath).st_gid
+          os.chown(fullfilepath,int(username_to_uid(username)),gid)
+          return "{\"success\":true}"
+      except Exception as e:
+        return "{\"success\":false,\"msg\":\"" + str(e) + "\"}"
+    elif re.match(r"\$\/createfolder",path):
+      try:
+        foldername = request.form["foldername"]
+        folder = request.form["folder"]
+        username = request.form["username"]
+        fullfolderpath = os.path.join(webroot + str(folder),foldername)
+
+        if os.path.exists(fullfolderpath):
+          return "{\"success\":false,\"msg\":\"Folder already exists\"}"
+        else:
+          os.mkdir(fullfolderpath)
+          
+          folderpath = os.path.join(webroot + str(folder))
+          gid = os.stat(folderpath).st_gid
+          os.chown(fullfolderpath,int(username_to_uid(username)),gid)
+          return "{\"success\":true}"
       except Exception as e:
         return "{\"success\":false,\"msg\":\"" + str(e) + "\"}"
     elif re.match(r"^\$\/upload",path):

@@ -72,6 +72,8 @@
                 if (ob.success) {
                     document.getElementById('statusbar').innerHTML = 'File saved.  Reloading in 2s';
                     document.getElementById('savefile').style.display = 'none';
+                    document.getElementById('cancelop').style.display = 'none';
+                    
                     setTimeout(function() {
                         window.location.reload();
                     },2000);

@@ -59,6 +59,7 @@
             var thisFormData = new FormData();
             thisFormData.append("csrf_token", "{{ csrf_token() }}");
             thisFormData.append('filespec',location.pathname);
+            thisFormData.append('folder',location.pathname.replace(/^(.*\/)[^\/]+$/,"$1"));
             thisFormData.append('username', getUsername());
             thisFormData.append('content',JSON.stringify(content));
 

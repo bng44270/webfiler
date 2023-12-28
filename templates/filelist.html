@@ -47,18 +47,23 @@
       return (JSON.parse(localStorage['webfiler'])).username;
     }
 
-    function setUsername() {
-      var username = document.getElementById('username').value;
+    function setConfig() {
+      document.getElementById('saveconfig').innerText = "Wait";
 
-      if (username.length == 0) {
-        document.getElementById('configstatus').innerHTML = '<span style="color:#ff0000;">Please specify a username</span>';
+      var username = document.getElementById('username').value;
+      var userpass = document.getElementById('userpassword').value;
+      var fileOperation = document.getElementById('fileoperation').value;
+
+      if (username.length == 0 || userpass.length == 0) {
+        document.getElementById('configstatus').innerHTML = '<span style="color:#ff0000;">Please specify a username and password</span>';
       }
       else {
         var thisFormData = new FormData();
         thisFormData.append('username', username);
+        thisFormData.append('password',userpass);
         thisFormData.append("csrf_token", "{{ csrf_token() }}");
 
-        var req = new WebRequest('POST', '/$/uservalidate', {
+        var req = new WebRequest('POST', '/$/authenticate', {
           data: thisFormData
         });
 
@@ -73,11 +78,19 @@
             };
 
             localStorage['webfiler'] = JSON.stringify(ob);
+            document.cookie = "webfiler_operation=" + fileOperation + ";expires=;path=/";
 
-            showList();
+            document.getElementById('saveconfig').innerText = "Save";
+
+            document.getElementById('configstatus').innerHTML = "Configuration saved.  Refreshing in 2s";
+            setTimeout(function() {
+              window.location.reload();
+            },2000);
           }
           else {
             document.getElementById('configstatus').innerHTML = '<span style="color:#ff0000;">' + ob.msg + '</span>';
+	    document.getElementById('saveconfig').innerText = "Save";
+ 
           }
         });
       }
@@ -90,10 +103,19 @@
     function configureViewer() {
       if (!configExists()) {
         showConfig();
+
       }
       else {
         showList();
       }
+
+      document.cookie.split(';').forEach(c => {
+        var cookieName = c.replace(/^([^=]+)=.*$/,'$1');
+        if (cookieName == 'webfiler_operation') {
+          var cookieValue = c.replace(/^[^=]+=(.*)$/,'$1');
+          document.getElementById('fileoperation').value = cookieValue;
+        }
+      });
     }
 
     function createNewFile() {
@@ -181,6 +203,8 @@
 
     function showConfig() {
       document.getElementById('listview').style.display = 'none';
+      document.getElementById('newfolderview').style.display = 'none';
+      document.getElementById('newfileview').style.display = 'none';
       document.getElementById('configview').style.display = 'block';
 
       if (configExists()) {
@@ -193,7 +217,12 @@
 <body onLoad="configureViewer();">
   <div id="configview">
     <label for="username">Username</label><input type="text" id="username" /><br />
-    <button onClick="setUsername();">Save</button>
+    <label form="userpassword">Password</label><input type="password" id="userpassword" /><br/>
+    <label for="operation">Operation</label><select id="fileoperation" />
+    <option value="readonly">Read Only</option>
+    <option value="readwrite">Read/Write</option>
+    </select><br/>
+    <button id="saveconfig" onClick="setConfig();">Save</button>
     <button onClick="showList();">Cancel</button>
     <span id="configstatus"></span>
   </div>
@@ -212,9 +241,11 @@
   <div id="listview">
     <h2>Contents of {{dirlist["path"]}}</h2>
     {% if dirlist["isroot"] %}<button onClick="location.href='{{dirlist[" path"]}}..';">Parent Folder</button>{% endif %}
+    {% if not dirlist["readonly"] %}
     <button onClick="uploadNewFile();">Upload File</button>
     <button onClick="showNewFile();">New File</button>
     <button onClick="showNewFolder();">New Folder</button>
+    {% endif %}
     <button onClick="showConfig();">Configure</button>
     <span id="statusbar"></span>
     <br /><br />

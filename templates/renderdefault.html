@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Contents of {{fileinfo["shortname"]}}</title>
+    <link rel="stylesheet" type="text/css" href="/prettify.css" />
+    <script type="text/javascript" src="/prettify.js"></script>
+    <script type="text/javascript" src="/webrequest.js"></script>
+</head>
+
+<body onload="PR.prettyPrint();">
+    <h2>Contents of {{fileinfo["shortname"]}}</h2><br/>
+    <button onclick="location.href = location.pathname.replace(/^(.*\/)[^\/]+/,'$1');">Parent Folder</button>
+    <div id="codeview" style="overflow-x: auto; overflow-y: auto;">
+        <pre style="line-height:100%;" id="filetext" class="prettyprint">{{fileinfo["content"]}}</pre>
+    </div>
+    <br /><span style="font-style:italic;">Powered by webfiler.py</span><br />
+</body>
+
+</html>

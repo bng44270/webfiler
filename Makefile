@@ -12,6 +12,7 @@ all: tmp/settings build
 	m4 -DLOCALPATH="$(call getsetting,tmp/settings,NEWPATH)" -DWEBPORT="$(call getsetting,tmp/settings,WEBPORT)" -DCERTFILE="$$(basename $(call getsetting,tmp/settings,CERTFILE))" -DKEYFILE="$$(basename $(call getsetting,tmp/settings,KEYFILE))" webfiler.py.m4 > build/webfiler.py
 	cp -R assets build
 	cp -R templates build
+	cp -R renderers build
 	cp $(call getsetting,tmp/settings,KEYFILE) build
 	cp $(call getsetting,tmp/settings,CERTFILE) build
 

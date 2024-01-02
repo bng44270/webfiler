@@ -6,12 +6,17 @@ import re
 import time
 from json import loads as json_parse
 import pam
+import subprocess
+from urllib.parse import unquote as url_decode
+import grp
+from renderers.shell import ShellRun as sh_render
+from renderers.python import PythonRun as py_render
 
 webroot = "LOCALPATH"
 
 webassets = os.listdir('assets')
 
-available_extensions = [re.sub(r"^r_([^\.]+)\.html","\\1",a) for a in os.listdir('templates') if a.startswith('r_')]
+available_extensions = [re.sub(r"^([^_]+)_.*$","\\1",a) for a in globals().keys() if a.endswith("_render")]
 
 csrf = CSRFProtect()
 
@@ -34,6 +39,19 @@ def uid_to_username(uid):
       return username
     except:
       return ""
+
+def group_to_id(gname):
+  with open("/etc/group","r") as f:
+    lines = f.readlines()
+    groups = [a for a in lines if a.startswith(gname)]
+    if len(groups) == 1:
+      return groups[0].split(":")[2]
+    else:
+      return False
+
+def is_user_admin(user):
+  usergroups = [g.gr_name for g in grp.getgrall() if user in g.gr_mem]
+  return True if "wbfadmin" in usergroups else False
 
 def parsebool(v):
   if re.match(r"true",v,flags=re.I):
@@ -67,7 +85,17 @@ def GetLogs(path):
       elif fileoperation == "readonly":
         filetype = re.sub(r"^.*\.([^\.]+)$","\\1",fileinfo["shortname"])
         if filetype in available_extensions:
-          return render_template(f"r_{filetype}.html",fileinfo = fileinfo)
+          try:
+            argar = []
+            argtext = request.args.get("args")
+            if argtext:
+              argar = url_decode(argtext).split("|")
+            
+            fileinfo["content"] = globals()[f"{filetype}_render"](thispath,argar)
+          except:
+            fileinfo["content"] = f"Error rendering template ({filetype})"
+          
+          return render_template("renderbare.html",fileinfo = fileinfo)
         else:
           return render_template("renderdefault.html",fileinfo = fileinfo)
       elif fileoperation == "readwrite":
@@ -114,23 +142,36 @@ def GetLogs(path):
       return resp
   elif request.method == "POST":
     if re.match(r"^\$\/authenticate",path):
-      username = request.form["username"]
-      password = request.form["password"]
-
-      if pam.authenticate(username,password):
-        return "{\"success\":true}"
-      else:
-        return "{\"success\":false,\"msg\":\"Authentication failed\"}"
-    elif re.match(r"^\$\/uservalidate",path):
       try:
         username = request.form["username"]
+        password = request.form["password"]
 
-        if username_to_uid(username):
+        if pam.authenticate(username,password):
           return "{\"success\":true}"
         else:
-          return "{\"success\":false,\"msg\":\"Invalid Username\"}"
+          return "{\"success\":false,\"msg\":\"Authentication failed\"}"
       except Exception as e:
-        return "{\"success\":false,\"msg\":\"" + str(e) + "ssss\"}"
+        return "{\"success\":false,\"msg\":\"" + str(e) + "\"}"
+    elif re.match(r"^\$\/useradd",path):
+      try:
+        runasuser = request.form["runasuser"]
+        username = request.form["username"]
+        password = request.form["password"]
+
+        useraddcmd = subprocess.run(["useradd",username])
+        if useraddcmd.returncode == 0:
+          echopasswdcmd = subprocess.Popen(("echo",f"{username}:{password}"),stdout=subprocess.PIPE)
+          passwdcmd = subprocess.run(("chpasswd"),stdin=echopasswdcmd.stdout)
+          echopasswdcmd.wait()
+          
+          if echopasswdcmd.returncode == 0 and passwdcmd.returncode == 0:
+            return "{\"success\":true}"
+          else:
+            return "{\"success\":false,\"msg\":\"Error setting password\"}"
+        else:
+          return "{\"success\":false,\"msg\":\"Error creating user\"}"
+      except Exception as e:
+        return "{\"success\":false,\"msg\":\"" + str(e) + "\"}"
     elif re.match(r"^\$\/savefile",path):
       try:
         filename = request.form["filespec"]

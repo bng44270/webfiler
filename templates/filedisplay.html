@@ -12,29 +12,79 @@
 <body>
     <h2>Contents of {{fileinfo["shortname"]}}</h2><br/>
     <button id="editfile">Edit</button>
+    <button id="edithtapp" style="display:none;">Edit HtApp</button>
     <button id="savefile">Save</button>
     <button id="cancelop">Cancel</button>
     <button onclick="location.href = location.pathname.replace(/^(.*\/)[^\/]+/,'$1');">Parent Folder</button>
-    <span id="statusbar"></span><br>
+    <span id="statusbar"></span><br/>
     <div id="codeview" style="overflow-x: auto; overflow-y: auto;">
         <pre style="line-height:100%;" id="filetext" class="prettyprint">{{fileinfo["content"]}}</pre>
     </div>
     <textarea id="edittext" style="width:100%;">{{fileinfo["content"]}}</textarea>
+    <div id="htappeditview" style="line-height:100%">
+        <label for="htatitle">Page Title</label><input type="text" id="htatitle" onkeyup="updateHtAppContent();"/><br/>
+        <label for="htahead">Head</label><br/><textarea style="width:100%;" id="htahead" onkeyup="updateHtAppContent();"></textarea><br/>
+        <label for="htabody">Body</label><br/><textarea style="width:100%;" id="htabody" onkeyup="updateHtAppContent();"></textarea>
+    </div>
     <br /><span style="font-style:italic;">Powered by webfiler.py</span><br />
     <script type="text/javascript">
         function getUsername() {
           return (JSON.parse(localStorage['webfiler'])).username;
         }
 
+        function updateHtAppContent() {
+            var htaSource = "<html>\n<head>\n<title>";
+            htaSource += document.getElementById('htatitle').value;
+            htaSource += "</title>\n";
+            htaSource += document.getElementById('htahead').value;
+            htaSource += "\n</head>\n<body>\n";
+            htaSource += document.getElementById('htabody').value;
+            htaSource += "\n</body>\n</html>";
+
+            document.getElementById('edittext').value = htaSource;
+        }
+
         document.body.onload = function () {
             var height = parseInt(window.innerHeight * 0.75);
             document.getElementById('codeview').style.height = height.toString() + "px";
             document.getElementById('edittext').style.height = height.toString() + "px";
+            document.getElementById('htahead').style.height = parseInt(height * 0.4).toString() + "px";
+            document.getElementById('htabody').style.height = parseInt(height * 0.4).toString() + "px";
             document.getElementById('edittext').style.display = 'none';
             document.getElementById('cancelop').style.display = 'none';
+            document.getElementById('htappeditview').style.display = 'none';
 
             PR.prettyPrint();
             document.getElementById('savefile').style.display = 'none';
+            
+            var fileType = location.pathname.replace(/^.*\/[^\/\.]+\.([^\/]+)$/g,'$1');
+
+            if (fileType == 'html') {
+                document.getElementById('edithtapp').style.display = 'inline';
+                document.getElementById('editfile').style.display = 'none';
+
+                var parse = new DOMParser();
+
+                var doc = parse.parseFromString(document.getElementById('edittext').value,'text/html');
+
+                var htaTitle = doc.getElementsByTagName('title');
+                document.getElementById('htatitle').value = (htaTitle) ? htaTitle[0].innerHTML : "";
+
+                var htaHead = doc.getElementsByTagName('head');
+                document.getElementById('htahead').value = (htaHead) ? htaHead[0].innerHTML.toString().replace(/^(.*)<title>[^<]+<\/title>(.*)$/m,'$1$2') : "";
+                
+                var htaBody = doc.getElementsByTagName('body');
+                document.getElementById('htabody').value = (htaBody) ? htaBody[0].innerHTML : "";
+            }
+        };
+
+        document.getElementById('edithtapp').onclick = function() {
+            document.getElementById('htappeditview').style.display = 'inline';
+            document.getElementById('savefile').style.display = 'inline';
+            document.getElementById('cancelop').style.display = 'inline';
+            document.getElementById('editfile').style.display = 'none';
+            document.getElementById('codeview').style.display = 'none';
+            document.getElementById('edittext').style.display = 'none';
         };
 
         document.getElementById('editfile').onclick = function() {
@@ -42,7 +92,14 @@
             document.getElementById('cancelop').style.display = 'inline';
             document.getElementById('editfile').style.display = 'none';
             document.getElementById('codeview').style.display = 'none';
+            document.getElementById('htappeditview').style.display = 'none';
             document.getElementById('edittext').style.display = 'block';
+
+            var fileType = location.pathname.replace(/^.*\/[^\/\.]+\.([^\/]+)$/g,'$1');
+
+            if (fileType == 'html') {
+                document.getElementById('edithtapp').style.display = 'inline';
+            }
         };
 
         document.getElementById('cancelop').onclick = function() {
@@ -51,6 +108,14 @@
             document.getElementById('editfile').style.display = 'inline';
             document.getElementById('codeview').style.display = 'block';
             document.getElementById('edittext').style.display = 'none';
+            document.getElementById('htappeditview').style.display = 'none';
+
+            var fileType = location.pathname.replace(/^.*\/[^\/\.]+\.([^\/]+)$/g,'$1');
+
+            if (fileType == 'html') {
+                document.getElementById('editfile').style.display = 'none';
+                document.getElementById('edithtapp').style.display = 'inline';
+            }
         };
 
         document.getElementById('savefile').onclick = function() {

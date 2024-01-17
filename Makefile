@@ -1,8 +1,12 @@
-SHELL := bash
-
+# Makefile Confuration
+TARGET_DIR = build
+TMP_DIR = tmp
+SETTINGS_FILE = $(TMP_DIR)/settings
 C_FILE = webfiler.py.c
-H_FILE = tmp/webfiler.py.h
-PY_FILE = build/webfiler.py
+H_FILE = $(TMP_DIR)/webfiler.py.h
+PY_FILE = $(TARGET_DIR)/webfiler.py
+
+SHELL := bash
 
 define newdefine
 @read -p "$(1) [$(3)]: " thisset ; [[ -z "$$thisset" ]] && echo "#define $(2) $(3)" >> $(4) || echo "#define $(2) $$thisset" | sed 's/\/$$//g' >> $(4)
@@ -13,31 +17,30 @@ define newdefinestr
 endef
 
 define getdefine
-$$(cpp -P -D CPP_ACTION=$(2) $(1))
+$$((cpp -P <<< "$$(cat $(1) ; echo "$(2)")") | sed 's/"//g')
 endef
 
-all: tmp/settings build
-	cpp -P -D CPP_ACTION=1 $(C_FILE) > $(PY_FILE)
+all: $(SETTINGS_FILE) $(TARGET_DIR)
+	cpp -P $(C_FILE) > $(PY_FILE)
 	
-	cp -R assets build
-	cp -R templates build
-	cp -R renderers build
-	cp $$(sed 's/"//g' <<< "$(call getdefine,$(C_FILE),2)") build
-	cp $$(sed 's/"//g' <<< "$(call getdefine,$(C_FILE),3)") build
+	cp -R assets $(TARGET_DIR)
+	cp -R templates $(TARGET_DIR)
+	cp -R renderers $(TARGET_DIR)
+	cp $(call getdefine,$(H_FILE),KEYFILE) $(TARGET_DIR)
+	cp $(call getdefine,$(H_FILE),CERTFILE) $(TARGET_DIR)
 
-tmp/settings: tmp
-	@echo "#define PYLEN len" > tmp/webfiler.py.h
+$(SETTINGS_FILE): $(TMP_DIR)
 	$(call newdefinestr,Enter local path,LOCALPATH,/tmp,$(H_FILE))
 	$(call newdefine,Enter web port,WEBPORT,8443,$(H_FILE))
 	$(call newdefinestr,Enter SSL Key file,KEYFILE,,$(H_FILE))
 	$(call newdefinestr,Enter SSL Cert file,CERTFILE,,$(H_FILE))
 
-tmp:
-	mkdir tmp
+$(TMP_DIR):
+	mkdir $(TMP_DIR)
 
-build:
-	mkdir build
+$(TARGET_DIR):
+	mkdir $(TARGET_DIR)
 
 clean:
-	rm -rf build
-	rm -rf tmp
+	rm -rf $(TARGET_DIR)
+	rm -rf $(TMP_DIR)

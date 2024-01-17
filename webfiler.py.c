@@ -1,6 +1,5 @@
 #include "tmp/webfiler.py.h"
 
-#if CPP_ACTION == 1
 from flask import Flask, render_template, send_file, request, make_response, redirect
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.utils import secure_filename
@@ -283,11 +282,3 @@ def GetLogs(path):
       return "Invalid POST operation"
 
 app.run("0.0.0.0",WEBPORT,ssl_context=(CERTFILE,KEYFILE))
-
-#elif CPP_ACTION == 2
-KEYFILE
-#elif CPP_ACTION == 3
-CERTFILE
-#else
-#error "Invalid CPP_ACTION value"
-#endif

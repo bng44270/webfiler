@@ -6,7 +6,7 @@ class PythonRenderer(BaseRenderer):
   def __init__(self,filespec,args=[],pipein=None):
     super().__init__(filespec,args,pipein)
   
-  def get_puthon_bin(self):
+  def get_python_bin(self):
     try:
       proc = open_proccess(["which","python3"],stdout=PIPE)
       cmdout = ''.join([a.decode('ascii') for a in proc.stdout.readlines()])
@@ -29,4 +29,4 @@ class PythonRenderer(BaseRenderer):
         outputstr = ''.join([a.decode('ascii') for a in process.stdout.readlines()])
       return {"tmpl":self.activetemplate,"content":self.nl2br(outputstr)}
     except:
-      return "Error running Python script"
+      return {"tmpl":self.activetemplate, "content":"Error running Python script"}

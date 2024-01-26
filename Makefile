@@ -19,14 +19,20 @@ define getdefine
 $$((cpp -P <<< "$$(cat $(1) ; echo "$(2)")") | sed 's/"//g')
 endef
 
+define certkeyval
+@(test -n "$(1)" && test -n "$(2)" && test -f $(1) && test -f $(2) && test "$$(openssl rsa -modulus -noout -in $(1))" = "$$(openssl x509 -modulus -noout -in $(2))" && echo "Verified cert/key pair") || (echo "Error verifying cert/key pair"; exit 1)
+endef
+
 all: $(H_FILE) $(TARGET_DIR)
+	$(call certkeyval,$(call getdefine,$(H_FILE),KEYFILE),$(call getdefine,$(H_FILE),CERTFILE))
+	cp $(call getdefine,$(H_FILE),KEYFILE) $(TARGET_DIR)
+	cp $(call getdefine,$(H_FILE),CERTFILE) $(TARGET_DIR)
+
 	cpp -P $(C_FILE) > $(PY_FILE)
 	
 	cp -R assets $(TARGET_DIR)
 	cp -R templates $(TARGET_DIR)
 	cp -R renderers $(TARGET_DIR)
-	cp $(call getdefine,$(H_FILE),KEYFILE) $(TARGET_DIR)
-	cp $(call getdefine,$(H_FILE),CERTFILE) $(TARGET_DIR)
 
 $(H_FILE): $(TMP_DIR)
 	$(call newdefinestr,Enter local path,LOCALPATH,/tmp,$(H_FILE))
